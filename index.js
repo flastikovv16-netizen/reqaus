@@ -153,40 +153,42 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
+    try {
+        await interaction.deferReply({ ephemeral: true });
 
-        try {
-            const panelChannel = await client.channels.fetch(CHANNEL_ID);
-            const category = panelChannel.parent;
+        const panelChannel = await client.channels.fetch(CHANNEL_ID);
 
-            const newChannel = await interaction.guild.channels.create({
-                name: `заявка-${interaction.user.username}`,
-                type: ChannelType.GuildText,
-                parent: category.id,
-                permissionOverwrites: [
-                    {
-                        id: interaction.guild.id,
-                        deny: ['ViewChannel']
-                    },
-                    {
-                        id: interaction.user.id,
-                        allow: ['ViewChannel', 'SendMessages']
-                    },
-                    ...ROLES.map(id => ({
-                        id,
-                        allow: ['ViewChannel', 'SendMessages']
-                    }))
-                ]
-            });
-
-            await newChannel.send(`📥 Заявка от <@${interaction.user.id}>`);
-
-            return interaction.reply({ content: '✅ Отправлено', ephemeral: true });
-
-        } catch (e) {
-            console.log(e);
-            return interaction.reply({ content: '❌ Ошибка', ephemeral: true });
+        if (!panelChannel) {
+            return interaction.editReply('❌ Канал панели не найден');
         }
+
+        const category = panelChannel.parent;
+
+        const newChannel = await interaction.guild.channels.create({
+            name: `заявка-${interaction.user.username}`,
+            type: ChannelType.GuildText,
+            parent: category ? category.id : null,
+            permissionOverwrites: [
+                {
+                    id: interaction.guild.id,
+                    deny: ['ViewChannel']
+                },
+                {
+                    id: interaction.user.id,
+                    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                }
+            ]
+        });
+
+        await newChannel.send(`📥 Заявка от <@${interaction.user.id}>`);
+
+        return interaction.editReply('✅ Заявка отправлена');
+
+    } catch (err) {
+        console.log('FORM ERROR:', err);
+        return interaction.editReply('❌ Ошибка создания заявки');
     }
+}
 
     // ================= TAKE LOCK =================
     if (interaction.customId.startsWith('take_')) {
