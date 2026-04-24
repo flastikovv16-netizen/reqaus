@@ -121,14 +121,17 @@ client.once('ready', async () => {
 client.on(Events.InteractionCreate, async interaction => {
 
     // ====== ПОРТФЕЛЬ ======
-  if (interaction.isButton() && interaction.customId === 'create_portfolio') {
+ if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
     try {
+        await interaction.deferReply({ ephemeral: true });
+
         const guild = interaction.guild;
 
         const portfolio = await guild.channels.create({
             name: `портфель-${interaction.user.username}`,
             type: ChannelType.GuildCategory,
+            reason: 'Portfolio created'
         });
 
         await portfolio.permissionOverwrites.set([
@@ -148,7 +151,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
 
-        for (let name of channels) {
+        for (const name of channels) {
             await guild.channels.create({
                 name,
                 type: ChannelType.GuildText,
@@ -156,18 +159,19 @@ client.on(Events.InteractionCreate, async interaction => {
             });
         }
 
-        return interaction.reply({
-            content: '✅ Портфель создан',
-            ephemeral: true
-        });
+        return await interaction.editReply('✅ Портфель создан');
 
     } catch (err) {
         console.log('PORTFOLIO ERROR:', err);
 
-        return interaction.reply({
-            content: '❌ Ошибка создания портфеля',
-            ephemeral: true
-        });
+        if (interaction.deferred || interaction.replied) {
+            return interaction.editReply('❌ Ошибка создания портфеля');
+        } else {
+            return interaction.reply({
+                content: '❌ Ошибка создания портфеля',
+                ephemeral: true
+            });
+        }
     }
 }
 
