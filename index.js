@@ -128,53 +128,56 @@ client.on(Events.InteractionCreate, async interaction => {
 
         const guild = interaction.guild;
 
-        const portfolio = await guild.channels.create({
+        // ====== 1. создаём категорию ======
+        const category = await guild.channels.create({
             name: `портфель-${interaction.user.username}`,
             type: ChannelType.GuildCategory,
-            reason: 'Portfolio created'
         });
 
-        await portfolio.permissionOverwrites.set([
-            {
-                id: guild.id,
-                deny: ['ViewChannel'],
-            },
-            {
-                id: interaction.user.id,
-                allow: ['ViewChannel']
-            },
-            ...PORTFOLIO_ROLES.map(id => ({
-                id,
-                allow: ['ViewChannel']
-            }))
-        ]);
+        // ====== 2. приватный канал ======
+        const channel = await guild.channels.create({
+            name: `📁-портфель`,
+            type: ChannelType.GuildText,
+            parent: category.id,
+            permissionOverwrites: [
+                {
+                    id: guild.id,
+                    deny: ['ViewChannel'],
+                },
+                {
+                    id: interaction.user.id,
+                    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                },
+                ...PORTFOLIO_ROLES.map(id => ({
+                    id,
+                    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                }))
+            ]
+        });
 
-        const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
+        // ====== 3. сообщение-основа ======
+        const msg = await channel.send({
+            content: `📂 Портфель создан для <@${interaction.user.id}>\n\nНиже ветки:`
+        });
 
-        for (const name of channels) {
-            await guild.channels.create({
+        // ====== 4. создание веток ======
+        const threads = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
+
+        for (const name of threads) {
+            await msg.startThread({
                 name,
-                type: ChannelType.GuildText,
-                parent: portfolio.id
+                autoArchiveDuration: 1440
             });
         }
 
-        return await interaction.editReply('✅ Портфель создан');
+        return interaction.editReply('✅ Портфель + ветки созданы');
 
     } catch (err) {
         console.log('PORTFOLIO ERROR:', err);
 
-        if (interaction.deferred || interaction.replied) {
-            return interaction.editReply('❌ Ошибка создания портфеля');
-        } else {
-            return interaction.reply({
-                content: '❌ Ошибка создания портфеля',
-                ephemeral: true
-            });
-        }
+        return interaction.editReply('❌ Ошибка создания портфеля');
     }
 }
-
     // ====== ОТКАТЫ ======
     if (interaction.isButton() && interaction.customId === 'create_thread') {
 
