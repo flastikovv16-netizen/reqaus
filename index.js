@@ -29,11 +29,6 @@ const ROLES = [
     '1252665952160452760',
 ];
 
-const ROLE_ACCEPT = '1245316820903395349';
-const RECRUIT_ROLE = '1493715429963731075';
-const LOG_CHANNEL_ID = '1493716294531416085';
-
-// ====== СТАТЫ ======
 const stats = {};
 const takenRequests = new Set();
 
@@ -143,8 +138,8 @@ client.on(Events.InteractionCreate, async interaction => {
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
             ),
-             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('Gungame').setLabel('Откаты с гг тяжка+сайга').setStyle(TextInputStyle.Short)
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder().setCustomId('gungame').setLabel('Откаты с гг тяжка/сайга').setStyle(TextInputStyle.Short)
             )
         );
 
@@ -153,44 +148,48 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
-    try {
-        await interaction.deferReply({ ephemeral: true });
 
-        const panelChannel = await client.channels.fetch(CHANNEL_ID);
+        try {
+            await interaction.deferReply({ ephemeral: true });
 
-        if (!panelChannel) {
-            return interaction.editReply('❌ Канал панели не найден');
+            const panelChannel = await client.channels.fetch(CHANNEL_ID);
+
+            const category = panelChannel.parent;
+
+            const newChannel = await interaction.guild.channels.create({
+                name: `заявка-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                parent: category ? category.id : null,
+                permissionOverwrites: [
+                    {
+                        id: interaction.guild.id,
+                        deny: ['ViewChannel']
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                    }
+                ]
+            });
+
+            await newChannel.send({
+                content: `📥 Заявка от <@${interaction.user.id}>
+                
+🧍 Имя: ${interaction.fields.getTextInputValue('name')}
+🎂 Возраст: ${interaction.fields.getTextInputValue('age')}
+🎮 Ник: ${interaction.fields.getTextInputValue('nick')}
+🔥 Откаты: ${interaction.fields.getTextInputValue('gungame')}`
+            });
+
+            return interaction.editReply('✅ Заявка отправлена');
+
+        } catch (err) {
+            console.log('FORM ERROR:', err);
+            return interaction.editReply('❌ Ошибка создания заявки');
         }
-
-        const category = panelChannel.parent;
-
-        const newChannel = await interaction.guild.channels.create({
-            name: `заявка-${interaction.user.username}`,
-            type: ChannelType.GuildText,
-            parent: category ? category.id : null,
-            permissionOverwrites: [
-                {
-                    id: interaction.guild.id,
-                    deny: ['ViewChannel']
-                },
-                {
-                    id: interaction.user.id,
-                    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-                }
-            ]
-        });
-
-        await newChannel.send(`📥 Заявка от <@${interaction.user.id}>`);
-
-        return interaction.editReply('✅ Заявка отправлена');
-
-    } catch (err) {
-        console.log('FORM ERROR:', err);
-        return interaction.editReply('❌ Ошибка создания заявки');
     }
-}
 
-    // ================= TAKE LOCK =================
+    // ================= TAKE =================
     if (interaction.customId.startsWith('take_')) {
 
         if (takenRequests.has(interaction.channel.id))
