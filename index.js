@@ -124,27 +124,45 @@ client.on(Events.InteractionCreate, async interaction => {
     // ================= APPLY =================
     if (interaction.customId === 'apply') {
 
-        const modal = new ModalBuilder()
-            .setCustomId('form')
-            .setTitle('Заявка');
+    const modal = new ModalBuilder()
+        .setCustomId('form')
+        .setTitle('Заявка');
 
-        modal.addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('name').setLabel('Имя ирл').setStyle(TextInputStyle.Short)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('age').setLabel('Возраст').setStyle(TextInputStyle.Short)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('gungame').setLabel('Откаты с гг тяжка/сайга').setStyle(TextInputStyle.Short)
-            )
-        );
+    const name = new TextInputBuilder()
+        .setCustomId('name')
+        .setLabel('Имя ирл')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
 
-        return interaction.showModal(modal);
-    }
+    const age = new TextInputBuilder()
+        .setCustomId('age')
+        .setLabel('Возраст')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+    const nick = new TextInputBuilder()
+        .setCustomId('nick')
+        .setLabel('Ник')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+    const gungame = new TextInputBuilder()
+        .setCustomId('Gungame')
+        .setLabel('Откаты с гг тяжка+сайга')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(name),
+        new ActionRowBuilder().addComponents(age),
+        new ActionRowBuilder().addComponents(nick),
+        new ActionRowBuilder().addComponents(gungame)
+    );
+
+    return interaction.showModal(modal).catch(err => {
+        console.log('MODAL ERROR:', err);
+    });
+}
 
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
