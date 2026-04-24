@@ -18,20 +18,17 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
-// ====== ОСНОВНЫЕ КАНАЛЫ ======
+// ====== КАНАЛЫ ======
 const CHANNEL_ID = '1493632481763790954';
-
-// ====== НОВЫЕ КАНАЛЫ ======
 const REPORT_CHANNEL_ID = 'ID_КАНАЛА_ОТЧЕТОВ';
 const ROLLBACK_CHANNEL_ID = 'ID_КАНАЛА_ОТКАТОВ';
 
-// ====== РОЛИ ДОСТУПА К ВЕТКАМ ======
+// ====== РОЛИ ======
 const PORTFOLIO_ROLES = [
     'ROLE_ID_1',
     'ROLE_ID_2'
 ];
 
-// ====== РОЛИ ======
 const ROLES = [
     '1493715429963731075',
     '1245159189777485885',
@@ -42,82 +39,88 @@ const ROLE_ACCEPT = '1245316820903395349';
 const RECRUIT_ROLE = '1493715429963731075';
 const LOG_CHANNEL_ID = '1493716294531416085';
 
+// ====== СТАТЫ ======
 const stats = {};
 const takenRequests = new Set();
 
+// ❗ защита от повторной отправки панелей
+let panelsSent = false;
 
-// ---------- ПАНЕЛИ ----------
+
+// ================= READY =================
 client.once('ready', async () => {
     console.log('Бот запущен');
 
-    // ====== ПАНЕЛЬ ЗАЯВОК ======
-    const channel = await client.channels.fetch(CHANNEL_ID);
+    if (panelsSent) return;
+    panelsSent = true;
 
-    const embed = new EmbedBuilder()
-        .setColor('#2b2d31')
-        .setImage('https://i.imgur.com/JkO2Vvi.png')
-        .setDescription(`👋 Путь в семью Kamatoz начинается здесь!
+    // ====== ЗАЯВКИ ======
+    try {
+        const channel = await client.channels.fetch(CHANNEL_ID);
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        const embed = new EmbedBuilder()
+            .setColor('#2b2d31')
+            .setImage('https://i.imgur.com/JkO2Vvi.png')
+            .setDescription(`📥 Нажми кнопку ниже`);
 
-📌 Важно
-Прочитайте ВСЕ ВОПРОСЫ.
-Если не ответили — ЗАЯВКА ОТКЛОНЯЕТСЯ.
-ЗАЯВКИ только на сервер Orlando (18)
+        const button = new ButtonBuilder()
+            .setCustomId('apply')
+            .setLabel('Подать заявку')
+            .setStyle(ButtonStyle.Primary);
 
-Требования:
-Возраст - 15+
-Прайм тайм - 4+ (исключения)
-Базовая стрельба с тяжки + сайга
-Адекватность
+        await channel.send({
+            embeds: [embed],
+            components: [new ActionRowBuilder().addComponents(button)]
+        });
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    } catch (e) {
+        console.log('Ошибка заявки:', e.message);
+    }
 
-📥 Нажми кнопку ниже
-`);
+    // ====== ОТЧЕТЫ ======
+    try {
+        if (REPORT_CHANNEL_ID && REPORT_CHANNEL_ID !== 'ID_КАНАЛА_ОТЧЕТОВ') {
+            const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
 
-    const button = new ButtonBuilder()
-        .setCustomId('apply')
-        .setLabel('Подать заявку')
-        .setStyle(ButtonStyle.Primary);
+            const reportBtn = new ButtonBuilder()
+                .setCustomId('create_portfolio')
+                .setLabel('Создать портфель')
+                .setStyle(ButtonStyle.Success);
 
-    await channel.send({
-        embeds: [embed],
-        components: [new ActionRowBuilder().addComponents(button)]
-    });
+            await reportChannel.send({
+                content: '📂 Создай свой портфель',
+                components: [new ActionRowBuilder().addComponents(reportBtn)]
+            });
+        }
+    } catch (e) {
+        console.log('Ошибка отчетов:', e.message);
+    }
 
-    // ====== ПАНЕЛЬ ОТЧЕТОВ ======
-    const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
+    // ====== ОТКАТЫ ======
+    try {
+        if (ROLLBACK_CHANNEL_ID && ROLLBACK_CHANNEL_ID !== 'ID_КАНАЛА_ОТКАТОВ') {
+            const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
 
-    const reportBtn = new ButtonBuilder()
-        .setCustomId('create_portfolio')
-        .setLabel('Создать портфель')
-        .setStyle(ButtonStyle.Success);
+            const rollbackBtn = new ButtonBuilder()
+                .setCustomId('create_thread')
+                .setLabel('Создать ветку')
+                .setStyle(ButtonStyle.Primary);
 
-    await reportChannel.send({
-        content: '📂 Создай свой портфель',
-        components: [new ActionRowBuilder().addComponents(reportBtn)]
-    });
-
-    // ====== ПАНЕЛЬ ОТКАТОВ ======
-    const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
-
-    const rollbackBtn = new ButtonBuilder()
-        .setCustomId('create_thread')
-        .setLabel('Создать ветку')
-        .setStyle(ButtonStyle.Primary);
-
-    await rollbackChannel.send({
-        content: '🎥 Создать ветку для откатов',
-        components: [new ActionRowBuilder().addComponents(rollbackBtn)]
-    });
+            await rollbackChannel.send({
+                content: '🎥 Создать ветку для откатов',
+                components: [new ActionRowBuilder().addComponents(rollbackBtn)]
+            });
+        }
+    } catch (e) {
+        console.log('Ошибка откатов:', e.message);
+    }
 });
 
 
-// ---------- ОБРАБОТЧИК ----------
+// ================= INTERACTIONS =================
 client.on(Events.InteractionCreate, async interaction => {
 
-    // ====== СОЗДАНИЕ ПОРТФЕЛЯ ======
+    // ====== ПОРТФЕЛЬ ======
     if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
         const parent = interaction.channel.parent;
@@ -156,7 +159,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '✅ Портфель создан', ephemeral: true });
     }
 
-    // ====== СОЗДАНИЕ ВЕТКИ ОТКАТОВ ======
+    // ====== ОТКАТЫ ======
     if (interaction.isButton() && interaction.customId === 'create_thread') {
 
         const parent = interaction.channel.parent;
@@ -184,7 +187,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '✅ Ветка создана', ephemeral: true });
     }
 
-    // ====== ЗАЯВКА ======
+    // ====== APPLY ======
     if (interaction.isButton() && interaction.customId === 'apply') {
 
         const modal = new ModalBuilder()
@@ -202,17 +205,17 @@ client.on(Events.InteractionCreate, async interaction => {
                 new TextInputBuilder().setCustomId('nick').setLabel('Ник игровой').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('history').setLabel('История семей и почему ушел').setStyle(TextInputStyle.Paragraph)
+                new TextInputBuilder().setCustomId('history').setLabel('История семей').setStyle(TextInputStyle.Paragraph)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('video').setLabel('Откат с гг тяжка + сайга').setStyle(TextInputStyle.Paragraph)
+                new TextInputBuilder().setCustomId('video').setLabel('Откат').setStyle(TextInputStyle.Paragraph)
             )
         );
 
         return interaction.showModal(modal);
     }
 
-    // ====== СОЗДАНИЕ КАНАЛА ЗАЯВКИ ======
+    // ====== FORM ======
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
         try {
             const panelChannel = await client.channels.fetch(CHANNEL_ID);
@@ -264,7 +267,7 @@ client.on(Events.InteractionCreate, async interaction => {
             return interaction.reply({ content: '✅ Заявка отправлена!', ephemeral: true });
 
         } catch (err) {
-            console.error(err);
+            console.log(err);
             return interaction.reply({ content: '❌ Ошибка', ephemeral: true });
         }
     }
@@ -298,8 +301,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         await interaction.channel.permissionOverwrites.edit(interaction.user.id, {
             ViewChannel: true,
-            SendMessages: true,
-            ReadMessageHistory: true
+            SendMessages: true
         });
 
         await interaction.channel.send(`🧾 <@${interaction.user.id}> взял заявку`);
@@ -323,9 +325,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
         const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
 
-        await logChannel.send(
-            `✅ <@${interaction.user.id}> принял <@${userId}> | Всего принял: ${stats[interaction.user.id]}`
-        );
+        await logChannel.send(`✅ <@${interaction.user.id}> принял <@${userId}>`);
 
         await interaction.reply('✅ Принят');
 
