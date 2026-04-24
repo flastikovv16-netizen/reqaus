@@ -18,8 +18,20 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
+// ====== ОСНОВНЫЕ КАНАЛЫ ======
 const CHANNEL_ID = '1493632481763790954';
 
+// ====== НОВЫЕ КАНАЛЫ ======
+const REPORT_CHANNEL_ID = 'ID_КАНАЛА_ОТЧЕТОВ';
+const ROLLBACK_CHANNEL_ID = 'ID_КАНАЛА_ОТКАТОВ';
+
+// ====== РОЛИ ДОСТУПА К ВЕТКАМ ======
+const PORTFOLIO_ROLES = [
+    'ROLE_ID_1',
+    'ROLE_ID_2'
+];
+
+// ====== РОЛИ ======
 const ROLES = [
     '1493715429963731075',
     '1245159189777485885',
@@ -33,17 +45,18 @@ const LOG_CHANNEL_ID = '1493716294531416085';
 const stats = {};
 const takenRequests = new Set();
 
-// ---------- ПАНЕЛЬ ----------
+
+// ---------- ПАНЕЛИ ----------
 client.once('ready', async () => {
     console.log('Бот запущен');
 
+    // ====== ПАНЕЛЬ ЗАЯВОК ======
     const channel = await client.channels.fetch(CHANNEL_ID);
 
     const embed = new EmbedBuilder()
         .setColor('#2b2d31')
         .setImage('https://i.imgur.com/JkO2Vvi.png')
-        .setDescription(`
-👋 Путь в семью Kamatoz начинается здесь!
+        .setDescription(`👋 Путь в семью Kamatoz начинается здесь!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -61,25 +74,117 @@ client.once('ready', async () => {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📥 Нажми кнопку ниже
-        `);
+`);
 
     const button = new ButtonBuilder()
         .setCustomId('apply')
         .setLabel('Подать заявку')
         .setStyle(ButtonStyle.Primary);
 
-    const row = new ActionRowBuilder().addComponents(button);
-
     await channel.send({
         embeds: [embed],
-        components: [row]
+        components: [new ActionRowBuilder().addComponents(button)]
+    });
+
+    // ====== ПАНЕЛЬ ОТЧЕТОВ ======
+    const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
+
+    const reportBtn = new ButtonBuilder()
+        .setCustomId('create_portfolio')
+        .setLabel('Создать портфель')
+        .setStyle(ButtonStyle.Success);
+
+    await reportChannel.send({
+        content: '📂 Создай свой портфель',
+        components: [new ActionRowBuilder().addComponents(reportBtn)]
+    });
+
+    // ====== ПАНЕЛЬ ОТКАТОВ ======
+    const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
+
+    const rollbackBtn = new ButtonBuilder()
+        .setCustomId('create_thread')
+        .setLabel('Создать ветку')
+        .setStyle(ButtonStyle.Primary);
+
+    await rollbackChannel.send({
+        content: '🎥 Создать ветку для откатов',
+        components: [new ActionRowBuilder().addComponents(rollbackBtn)]
     });
 });
+
 
 // ---------- ОБРАБОТЧИК ----------
 client.on(Events.InteractionCreate, async interaction => {
 
-    // ---------- ПОДАТЬ ----------
+    // ====== СОЗДАНИЕ ПОРТФЕЛЯ ======
+    if (interaction.isButton() && interaction.customId === 'create_portfolio') {
+
+        const parent = interaction.channel.parent;
+
+        const portfolio = await interaction.guild.channels.create({
+            name: `портфель-${interaction.user.username}`,
+            type: ChannelType.GuildCategory,
+            parent: parent.id,
+        });
+
+        await portfolio.permissionOverwrites.set([
+            {
+                id: interaction.guild.id,
+                deny: ['ViewChannel'],
+            },
+            {
+                id: interaction.user.id,
+                allow: ['ViewChannel']
+            },
+            ...PORTFOLIO_ROLES.map(id => ({
+                id,
+                allow: ['ViewChannel']
+            }))
+        ]);
+
+        const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
+
+        for (let name of channels) {
+            await interaction.guild.channels.create({
+                name,
+                type: ChannelType.GuildText,
+                parent: portfolio.id
+            });
+        }
+
+        return interaction.reply({ content: '✅ Портфель создан', ephemeral: true });
+    }
+
+    // ====== СОЗДАНИЕ ВЕТКИ ОТКАТОВ ======
+    if (interaction.isButton() && interaction.customId === 'create_thread') {
+
+        const parent = interaction.channel.parent;
+
+        const newChannel = await interaction.guild.channels.create({
+            name: `откаты-${interaction.user.username}`,
+            type: ChannelType.GuildText,
+            parent: parent.id,
+            permissionOverwrites: [
+                {
+                    id: interaction.guild.id,
+                    deny: ['ViewChannel'],
+                },
+                {
+                    id: interaction.user.id,
+                    allow: ['ViewChannel', 'SendMessages']
+                },
+                ...PORTFOLIO_ROLES.map(id => ({
+                    id,
+                    allow: ['ViewChannel']
+                }))
+            ]
+        });
+
+        return interaction.reply({ content: '✅ Ветка создана', ephemeral: true });
+    }
+
+    // ====== ЗАЯВКА ======
     if (interaction.isButton() && interaction.customId === 'apply') {
 
         const modal = new ModalBuilder()
@@ -107,7 +212,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.showModal(modal);
     }
 
-    // ---------- СОЗДАНИЕ ----------
+    // ====== СОЗДАНИЕ КАНАЛА ЗАЯВКИ ======
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
         try {
             const panelChannel = await client.channels.fetch(CHANNEL_ID);
@@ -164,7 +269,6 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     }
 
-    // ---------- КНОПКИ ----------
     if (!interaction.isButton()) return;
 
     const userId = interaction.customId.split('_')[1];
@@ -173,7 +277,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '❌ Нет доступа', ephemeral: true });
     }
 
-    // 🧾 ВЗЯТЬ
+    // ====== TAKE ======
     if (interaction.customId.startsWith('take_')) {
 
         if (!interaction.member.roles.cache.has(RECRUIT_ROLE)) {
@@ -203,13 +307,13 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '✅ Ты взял заявку', ephemeral: true });
     }
 
-    // 📞 ОБЗВОН
+    // ====== CALL ======
     if (interaction.customId.startsWith('call_')) {
         await interaction.channel.send(`📞 <@${userId}> зайди в войс`);
         return interaction.reply({ content: '📞 Отправлено', ephemeral: true });
     }
 
-    // ✅ ПРИНЯТЬ
+    // ====== ACCEPT ======
     if (interaction.customId.startsWith('accept_')) {
 
         const member = await interaction.guild.members.fetch(userId);
@@ -232,7 +336,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return;
     }
 
-    // ❌ ОТКЛОН
+    // ====== DENY ======
     if (interaction.customId.startsWith('deny_')) {
 
         const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
