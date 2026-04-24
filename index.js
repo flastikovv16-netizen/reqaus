@@ -79,7 +79,7 @@ client.once('ready', async () => {
 
     // ====== ОТЧЕТЫ ======
     try {
-        if (REPORT_CHANNEL_ID && REPORT_CHANNEL_ID !== '1497290160273096744') {
+        if (REPORT_CHANNEL_ID) {
             const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
 
             const reportBtn = new ButtonBuilder()
