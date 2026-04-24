@@ -121,7 +121,7 @@ client.once('ready', async () => {
 client.on(Events.InteractionCreate, async interaction => {
 
     // ====== ПОРТФЕЛЬ ======
-   if (interaction.isButton() && interaction.customId === 'create_portfolio') {
+   if (interaction.isButton() && interaction.customId === 'create_portfolio') async {
 
     try {
         const guild = interaction.guild;
