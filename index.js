@@ -79,7 +79,7 @@ client.once('ready', async () => {
 
     // ====== ОТЧЕТЫ ======
     try {
-        if (REPORT_CHANNEL_ID && REPORT_CHANNEL_ID !== 'ID_КАНАЛА_ОТЧЕТОВ') {
+        if (REPORT_CHANNEL_ID && REPORT_CHANNEL_ID !== '1497290160273096744') {
             const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
 
             const reportBtn = new ButtonBuilder()
@@ -121,14 +121,55 @@ client.once('ready', async () => {
 client.on(Events.InteractionCreate, async interaction => {
 
     // ====== ПОРТФЕЛЬ ======
-    if (interaction.isButton() && interaction.customId === 'create_portfolio') {
+   if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
-        const parent = interaction.channel.parent;
+    try {
+        const guild = interaction.guild;
 
-        const portfolio = await interaction.guild.channels.create({
+        const portfolio = await guild.channels.create({
             name: `портфель-${interaction.user.username}`,
             type: ChannelType.GuildCategory,
-            parent: parent.id,
+        });
+
+        await portfolio.permissionOverwrites.set([
+            {
+                id: guild.id,
+                deny: ['ViewChannel'],
+            },
+            {
+                id: interaction.user.id,
+                allow: ['ViewChannel']
+            },
+            ...PORTFOLIO_ROLES.map(id => ({
+                id,
+                allow: ['ViewChannel']
+            }))
+        ]);
+
+        const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
+
+        for (let name of channels) {
+            await guild.channels.create({
+                name,
+                type: ChannelType.GuildText,
+                parent: portfolio.id
+            });
+        }
+
+        return interaction.reply({
+            content: '✅ Портфель создан',
+            ephemeral: true
+        });
+
+    } catch (err) {
+        console.log('PORTFOLIO ERROR:', err);
+
+        return interaction.reply({
+            content: '❌ Ошибка создания портфеля',
+            ephemeral: true
+        });
+    }
+}
         });
 
         await portfolio.permissionOverwrites.set([
