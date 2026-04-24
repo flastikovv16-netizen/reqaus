@@ -205,13 +205,12 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: '📞 Отправлено', ephemeral: true });
     }
 
-    // ---------- ACCEPT ----------
-  if (interaction.customId.startsWith('accept_')) {
+   // ---------- ACCEPT ----------
+if (interaction.customId.startsWith('accept_')) {
 
     const member = await interaction.guild.members.fetch(userId);
     await member.roles.add(ROLE_ACCEPT);
 
-    // ====== СЧЁТЧИК ======
     stats[interaction.user.id] = (stats[interaction.user.id] || 0) + 1;
 
     const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
@@ -228,23 +227,23 @@ client.on(Events.InteractionCreate, async interaction => {
 
     return;
 }
-    }
 
-    // ---------- DENY ----------
-    if (interaction.customId.startsWith('deny_')) {
 
-        const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+   // ---------- DENY ----------
+if (interaction.customId.startsWith('deny_')) {
 
-        await logChannel.send(`❌ <@${interaction.user.id}> отклонил <@${userId}>`);
+    const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
 
-        await interaction.reply('❌ Отклонён');
+    await logChannel.send(`❌ <@${interaction.user.id}> отклонил <@${userId}>`);
 
-        setTimeout(() => {
-            interaction.channel.delete().catch(() => {});
-        }, 10000);
+    await interaction.reply('❌ Отклонён');
 
-        return;
-    }
+    setTimeout(() => {
+        interaction.channel.delete().catch(() => {});
+    }, 10000);
+
+    return;
+}
 
     // ================= ОТКАТЫ (ДОБАВЛЕНО) =================
     if (interaction.customId === 'create_thread') {
