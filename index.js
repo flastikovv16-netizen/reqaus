@@ -135,13 +135,16 @@ client.on(Events.InteractionCreate, async interaction => {
 
         modal.addComponents(
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('name').setLabel('Имя').setStyle(TextInputStyle.Short)
+                new TextInputBuilder().setCustomId('name').setLabel('Имя ирл').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('age').setLabel('Возраст').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
+            )
+             new ActionRowBuilder().addComponents(
+                new TextInputBuilder().setCustomId('nick').setLabel('Откаты с гг тяжка+сайга').setStyle(TextInputStyle.Short)
             )
         );
 
