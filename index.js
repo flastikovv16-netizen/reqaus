@@ -9,8 +9,7 @@ const {
     TextInputBuilder,
     TextInputStyle,
     Events,
-    ChannelType,
-    PermissionsBitField
+    ChannelType
 } = require('discord.js');
 
 const client = new Client({
@@ -19,22 +18,8 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
-// ====== ОСНОВНЫЕ КАНАЛЫ ======
 const CHANNEL_ID = '1493632481763790954';
 
-// ====== НОВЫЕ КАНАЛЫ ======
-const REPORT_CHANNEL_ID = '1497290160273096744';
-const ROLLBACK_CHANNEL_ID = '1497292157499867166';
-
-// ====== РОЛИ ДОСТУПА ======
-const PORTFOLIO_ROLES = [
-    '1319640563401752586',
-    '1319640756524417046',
-    '1252673349440508034',
-    '1245159189777485885'
-];
-
-// ====== ТВОЙ КОД ======
 const ROLES = [
     '1493715429963731075',
     '1245159189777485885',
@@ -48,31 +33,17 @@ const LOG_CHANNEL_ID = '1493716294531416085';
 const stats = {};
 const takenRequests = new Set();
 
-// ====== ФИКС ОТ ДУБЛЕЙ ======
-const safeSendOnce = async (channel, payload) => {
-    try {
-        const msgs = await channel.messages.fetch({ limit: 10 });
-        const exists = msgs.find(m => m.author.id === client.user.id);
-        if (exists) return;
-        await channel.send(payload);
-    } catch (e) {
-        console.error('safeSend error:', e);
-    }
-};
-
-// ---------- ПАНЕЛИ ----------
+// ---------- ПАНЕЛЬ ----------
 client.once('ready', async () => {
     console.log('Бот запущен');
 
-    try {
-        const channel = await client.channels.fetch(CHANNEL_ID);
-        const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
-        const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
+    const channel = await client.channels.fetch(CHANNEL_ID);
 
-       const embed = new EmbedBuilder()
-    .setColor('#2b2d31')
-    .setImage('https://i.imgur.com/JkO2Vvi.png')
-    .setDescription(`👋 Путь в семью Kamatoz начинается здесь!
+    const embed = new EmbedBuilder()
+        .setColor('#2b2d31')
+        .setImage('https://i.imgur.com/JkO2Vvi.png')
+        .setDescription(`
+👋 Путь в семью Kamatoz начинается здесь!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -82,52 +53,27 @@ client.once('ready', async () => {
 ЗАЯВКИ только на сервер Orlando (18)
 
 Требования:
-• Возраст - 15+
-• Прайм тайм - 4+ (исключения)
-• Базовая стрельба с тяжки + сайга
-• Адекватность
+Возраст - 15+
+Прайм тайм - 4+ (исключения)
+Базовая стрельба с тяжки + сайга
+Адекватность
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📥 Нажми кнопку ниже`);
+📥 Нажми кнопку ниже
+        `);
 
-        const button = new ButtonBuilder()
-            .setCustomId('apply')
-            .setLabel('Подать заявку')
-            .setStyle(ButtonStyle.Primary);
+    const button = new ButtonBuilder()
+        .setCustomId('apply')
+        .setLabel('Подать заявку')
+        .setStyle(ButtonStyle.Primary);
 
-        await safeSendOnce(channel, {
-            embeds: [embed],
-            components: [new ActionRowBuilder().addComponents(button)]
-        });
+    const row = new ActionRowBuilder().addComponents(button);
 
-        await safeSendOnce(reportChannel, {
-            content: '📂 Создай свой портфель',
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('create_portfolio')
-                        .setLabel('Создать портфель')
-                        .setStyle(ButtonStyle.Success)
-                )
-            ]
-        });
-
-        await safeSendOnce(rollbackChannel, {
-            content: '🎥 Создать ветку для откатов',
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('create_thread')
-                        .setLabel('Создать ветку')
-                        .setStyle(ButtonStyle.Primary)
-                )
-            ]
-        });
-
-    } catch (err) {
-        console.error('READY ERROR:', err);
-    }
+    await channel.send({
+        embeds: [embed],
+        components: [row]
+    });
 });
 
 // ---------- ОБРАБОТЧИК ----------
@@ -161,23 +107,28 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.showModal(modal);
     }
 
-    // ---------- СОЗДАНИЕ ЗАЯВКИ ----------
+    // ---------- СОЗДАНИЕ ----------
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
         try {
-
             const panelChannel = await client.channels.fetch(CHANNEL_ID);
             const category = panelChannel.parent;
 
             const newChannel = await interaction.guild.channels.create({
                 name: `заявка-${interaction.user.username}`,
                 type: ChannelType.GuildText,
-                parent: category?.id || null,
+                parent: category.id,
                 permissionOverwrites: [
-                    { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-                    { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory] },
+                    {
+                        id: interaction.guild.id,
+                        deny: ['ViewChannel'],
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'],
+                    },
                     ...ROLES.map(roleId => ({
                         id: roleId,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory]
+                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
                     }))
                 ]
             });
@@ -213,82 +164,88 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     }
 
-    // ---------- ПОРТФЕЛЬ ----------
-    if (interaction.isButton() && interaction.customId === 'create_portfolio') {
-
-        const parent = interaction.channel.parent;
-
-        const portfolio = await interaction.guild.channels.create({
-            name: `портфель-${interaction.user.username}`,
-            type: ChannelType.GuildCategory,
-            permissionOverwrites: [
-                { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-                { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel] },
-                ...PORTFOLIO_ROLES.map(id => ({ id, allow: [PermissionsBitField.Flags.ViewChannel] }))
-            ]
-        });
-
-        const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
-
-        for (let name of channels) {
-            await interaction.guild.channels.create({
-                name,
-                type: ChannelType.GuildText,
-                parent: portfolio.id
-            });
-        }
-
-        return interaction.reply({ content: '✅ Портфель создан', ephemeral: true });
-    }
-
-    // ---------- ОТКАТЫ ----------
-    if (interaction.isButton() && interaction.customId === 'create_thread') {
-
-        const parent = interaction.channel.parent;
-
-        await interaction.guild.channels.create({
-            name: `откаты-${interaction.user.username}`,
-            type: ChannelType.GuildText,
-            parent: parent?.id || null,
-            permissionOverwrites: [
-                { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-                { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
-                ...PORTFOLIO_ROLES.map(id => ({ id, allow: [PermissionsBitField.Flags.ViewChannel] }))
-            ]
-        });
-
-        return interaction.reply({ content: '✅ Ветка создана', ephemeral: true });
-    }
-
-    // ---------- КНОПКИ ЗАЯВОК ----------
+    // ---------- КНОПКИ ----------
     if (!interaction.isButton()) return;
 
     const userId = interaction.customId.split('_')[1];
 
+    if (interaction.user.id === userId) {
+        return interaction.reply({ content: '❌ Нет доступа', ephemeral: true });
+    }
+
+    // 🧾 ВЗЯТЬ
+    if (interaction.customId.startsWith('take_')) {
+
+        if (!interaction.member.roles.cache.has(RECRUIT_ROLE)) {
+            return interaction.reply({ content: '❌ Только рекрут', ephemeral: true });
+        }
+
+        if (takenRequests.has(interaction.channel.id)) {
+            return interaction.reply({ content: '❌ Уже взята', ephemeral: true });
+        }
+
+        takenRequests.add(interaction.channel.id);
+
+        for (let roleId of ROLES) {
+            await interaction.channel.permissionOverwrites.edit(roleId, {
+                ViewChannel: false
+            });
+        }
+
+        await interaction.channel.permissionOverwrites.edit(interaction.user.id, {
+            ViewChannel: true,
+            SendMessages: true,
+            ReadMessageHistory: true
+        });
+
+        await interaction.channel.send(`🧾 <@${interaction.user.id}> взял заявку`);
+
+        return interaction.reply({ content: '✅ Ты взял заявку', ephemeral: true });
+    }
+
+    // 📞 ОБЗВОН
     if (interaction.customId.startsWith('call_')) {
         await interaction.channel.send(`📞 <@${userId}> зайди в войс`);
         return interaction.reply({ content: '📞 Отправлено', ephemeral: true });
     }
 
+    // ✅ ПРИНЯТЬ
     if (interaction.customId.startsWith('accept_')) {
+
         const member = await interaction.guild.members.fetch(userId);
         await member.roles.add(ROLE_ACCEPT);
 
         stats[interaction.user.id] = (stats[interaction.user.id] || 0) + 1;
 
         const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
-        await logChannel.send(`✅ <@${interaction.user.id}> принял <@${userId}>`);
+
+        await logChannel.send(
+            `✅ <@${interaction.user.id}> принял <@${userId}> | Всего принял: ${stats[interaction.user.id]}`
+        );
 
         await interaction.reply('✅ Принят');
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 10000);
+
+        setTimeout(() => {
+            interaction.channel.delete().catch(() => {});
+        }, 10000);
+
+        return;
     }
 
+    // ❌ ОТКЛОН
     if (interaction.customId.startsWith('deny_')) {
+
         const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+
         await logChannel.send(`❌ <@${interaction.user.id}> отклонил <@${userId}>`);
 
         await interaction.reply('❌ Отклонён');
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 10000);
+
+        setTimeout(() => {
+            interaction.channel.delete().catch(() => {});
+        }, 10000);
+
+        return;
     }
 });
 
