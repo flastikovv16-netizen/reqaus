@@ -47,61 +47,46 @@ const takenRequests = new Set();
 client.once('ready', async () => {
     console.log('Бот запущен');
 
-    try {
-        const channel = await client.channels.fetch(CHANNEL_ID);
+    const channel = await client.channels.fetch(CHANNEL_ID);
 
-        const embed = new EmbedBuilder()
-            .setColor('#2b2d31')
-            .setImage('https://i.imgur.com/JkO2Vvi.png')
-            .setDescription(`📥 Нажми кнопку ниже`);
+    const embed = new EmbedBuilder()
+        .setColor('#2b2d31')
+        .setImage('https://i.imgur.com/JkO2Vvi.png')
+        .setDescription(`📥 Нажми кнопку ниже`);
 
-        const button = new ButtonBuilder()
-            .setCustomId('apply')
-            .setLabel('Подать заявку')
-            .setStyle(ButtonStyle.Primary);
+    const button = new ButtonBuilder()
+        .setCustomId('apply')
+        .setLabel('Подать заявку')
+        .setStyle(ButtonStyle.Primary);
 
-        await channel.send({
-            embeds: [embed],
-            components: [new ActionRowBuilder().addComponents(button)]
-        });
+    await channel.send({
+        embeds: [embed],
+        components: [new ActionRowBuilder().addComponents(button)]
+    });
 
-    } catch (e) {
-        console.log('Ошибка заявки:', e.message);
-    }
+    const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
 
-    try {
-        const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
+    const reportBtn = new ButtonBuilder()
+        .setCustomId('create_portfolio')
+        .setLabel('Создать портфель')
+        .setStyle(ButtonStyle.Success);
 
-        const reportBtn = new ButtonBuilder()
-            .setCustomId('create_portfolio')
-            .setLabel('Создать портфель')
-            .setStyle(ButtonStyle.Success);
+    await reportChannel.send({
+        content: '📂 Создай свой портфель',
+        components: [new ActionRowBuilder().addComponents(reportBtn)]
+    });
 
-        await reportChannel.send({
-            content: '📂 Создай свой портфель',
-            components: [new ActionRowBuilder().addComponents(reportBtn)]
-        });
+    const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
 
-    } catch (e) {
-        console.log('Ошибка отчетов:', e.message);
-    }
+    const rollbackBtn = new ButtonBuilder()
+        .setCustomId('create_thread')
+        .setLabel('Создать ветку')
+        .setStyle(ButtonStyle.Primary);
 
-    try {
-        const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
-
-        const rollbackBtn = new ButtonBuilder()
-            .setCustomId('create_thread')
-            .setLabel('Создать ветку')
-            .setStyle(ButtonStyle.Primary);
-
-        await rollbackChannel.send({
-            content: '🎥 Создать ветку для откатов',
-            components: [new ActionRowBuilder().addComponents(rollbackBtn)]
-        });
-
-    } catch (e) {
-        console.log('Ошибка откатов:', e.message);
-    }
+    await rollbackChannel.send({
+        content: '📼 Создать откаты',
+        components: [new ActionRowBuilder().addComponents(rollbackBtn)]
+    });
 });
 
 
@@ -113,85 +98,80 @@ client.on(Events.InteractionCreate, async interaction => {
     // ================= ПОРТФЕЛЬ =================
     if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
-    try {
-        await interaction.deferReply({ ephemeral: true });
+        try {
+            await interaction.deferReply({ ephemeral: true });
 
-        const guild = interaction.guild;
+            const guild = interaction.guild;
 
-        const category = await guild.channels.create({
-            name: `портфель-${interaction.user.username}`,
-            type: ChannelType.GuildCategory,
-        });
-
-        const channel = await guild.channels.create({
-            name: `📁-портфель`,
-            type: ChannelType.GuildText,
-            parent: category.id,
-            permissionOverwrites: [
-                { id: guild.id, deny: ['ViewChannel'] },
-                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] },
-                ...PORTFOLIO_ROLES.map(id => ({
-                    id,
-                    allow: ['ViewChannel', 'SendMessages']
-                }))
-            ]
-        });
-
-        const msg = await channel.send({
-            content: `📂 Портфель создан`
-        });
-
-        const threads = ['Capt', 'Mcl/Vzz', 'RP'];
-
-        for (const name of threads) {
-            await msg.startThread({
-                name,
-                autoArchiveDuration: 1440
+            const channel = await guild.channels.create({
+                name: `портфель-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    { id: guild.id, deny: ['ViewChannel'] },
+                    { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+                    ...PORTFOLIO_ROLES.map(id => ({
+                        id,
+                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                    }))
+                ]
             });
 
-            await new Promise(r => setTimeout(r, 300));
-        }
+            const msg = await channel.send({
+                content: `📁 Портфель создан`
+            });
 
-        return interaction.editReply('✅ Портфель создан');
+            const threads = ['Capt', 'Mcl/Vzz', 'RP'];
 
-    } catch (err) {
-        console.log('PORTFOLIO ERROR:', err);
+            for (const name of threads) {
+                await msg.startThread({
+                    name,
+                    autoArchiveDuration: 1440
+                });
 
-        if (interaction.deferred || interaction.replied) {
-            return interaction.editReply('❌ Ошибка создания портфеля');
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            return interaction.editReply('✅ Портфель создан');
+
+        } catch (err) {
+            console.log(err);
+            return interaction.editReply('❌ Ошибка портфеля');
         }
     }
-}
+
     // ================= ОТКАТЫ =================
-if (interaction.isButton() && interaction.customId === 'create_thread') {
+    if (interaction.isButton() && interaction.customId === 'create_thread') {
 
-    try {
-        await interaction.deferReply({ ephemeral: true });
+        try {
+            await interaction.deferReply({ ephemeral: true });
 
-        const channel = interaction.channel;
+            const guild = interaction.guild;
 
-        const msg = await channel.send({
-            content: `📼 Откаты от <@${interaction.user.id}>`
-        });
-
-        const threads = ['РП', 'GUNGAME', 'CAPT/MCL/VZZ'];
-
-        for (const name of threads) {
-            const thread = await msg.startThread({
-                name: `откаты-${interaction.user.username}-${name}`,
-                autoArchiveDuration: 1440
+            const channel = await guild.channels.create({
+                name: `откаты-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                permissionOverwrites: [
+                    { id: guild.id, deny: ['ViewChannel'] },
+                    { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+                    ...PORTFOLIO_ROLES.map(id => ({
+                        id,
+                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+                    }))
+                ]
             });
 
-            await new Promise(r => setTimeout(r, 300));
+            await channel.send({
+                content: `📼 Откаты пользователя <@${interaction.user.id}>`
+            });
+
+            return interaction.editReply('✅ Успешно');
+
+        } catch (err) {
+            console.log(err);
+            return interaction.editReply('❌ Ошибка');
         }
-
-        return interaction.editReply('✅ Успешно');
-
-    } catch (err) {
-        console.log(err);
-        return interaction.editReply('❌ Ошибка');
     }
-}
+
     // ================= APPLY =================
     if (interaction.isButton() && interaction.customId === 'apply') {
 
@@ -201,7 +181,7 @@ if (interaction.isButton() && interaction.customId === 'create_thread') {
 
         modal.addComponents(
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('name').setLabel('Имя ирл').setStyle(TextInputStyle.Short)
+                new TextInputBuilder().setCustomId('name').setLabel('Имя').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('age').setLabel('Возраст').setStyle(TextInputStyle.Short)
@@ -223,30 +203,24 @@ if (interaction.isButton() && interaction.customId === 'create_thread') {
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
 
-        const panelChannel = await client.channels.fetch(CHANNEL_ID);
-        const category = panelChannel.parent;
-
-        const newChannel = await interaction.guild.channels.create({
+        const channel = await interaction.guild.channels.create({
             name: `заявка-${interaction.user.username}`,
             type: ChannelType.GuildText,
-            parent: category.id,
         });
 
         const embed = new EmbedBuilder()
             .setTitle('📥 Новая заявка')
             .addFields(
-                { name: 'Имя ирл', value: interaction.fields.getTextInputValue('name') },
+                { name: 'Имя', value: interaction.fields.getTextInputValue('name') },
                 { name: 'Возраст', value: interaction.fields.getTextInputValue('age') },
                 { name: 'Ник', value: interaction.fields.getTextInputValue('nick') },
-                { name: 'История семей и почему ушел', value: interaction.fields.getTextInputValue('history') },
-                { name: 'Откаты с гг', value: interaction.fields.getTextInputValue('video') }
+                { name: 'История', value: interaction.fields.getTextInputValue('history') },
+                { name: 'Видео', value: interaction.fields.getTextInputValue('video') }
             );
 
-        await newChannel.send({
-            embeds: [embed]
-        });
+        await channel.send({ embeds: [embed] });
 
-        return interaction.reply({ content: '✅ Заявка отправлена', ephemeral: true });
+        return interaction.reply({ content: '✅ Отправлено', ephemeral: true });
     }
 });
 
