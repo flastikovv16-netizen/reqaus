@@ -29,6 +29,11 @@ const ROLES = [
     '1252665952160452760',
 ];
 
+const ROLE_ACCEPT = '1245316820903395349';
+const RECRUIT_ROLE = '1493715429963731075';
+const LOG_CHANNEL_ID = '1493716294531416085';
+
+// ====== СТАТЫ ======
 const stats = {};
 const takenRequests = new Set();
 
@@ -113,7 +118,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             await channel.send(`📼 Откаты пользователя <@${interaction.user.id}>`);
 
-            return interaction.editReply('✅ Успешно');
+            return interaction.editReply('✅ Откаты созданы');
 
         } catch (err) {
             console.log(err);
@@ -123,68 +128,37 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ================= APPLY =================
     if (interaction.customId === 'apply') {
-    try {
+
         const modal = new ModalBuilder()
             .setCustomId('form')
             .setTitle('Заявка');
 
-        const fields = [
-            new TextInputBuilder()
-                .setCustomId('name')
-                .setLabel('Имя ирл')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true),
-
-            new TextInputBuilder()
-                .setCustomId('age')
-                .setLabel('Возраст')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true),
-
-            new TextInputBuilder()
-                .setCustomId('nick')
-                .setLabel('Ник')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true),
-
-            new TextInputBuilder()
-                .setCustomId('Gungame')
-                .setLabel('Откаты с гг тяжка+сайга')
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true),
-        ];
-
         modal.addComponents(
-            ...fields.map(f => new ActionRowBuilder().addComponents(f))
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder().setCustomId('name').setLabel('Имя').setStyle(TextInputStyle.Short)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder().setCustomId('age').setLabel('Возраст').setStyle(TextInputStyle.Short)
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
+            )
         );
 
-        return await interaction.showModal(modal);
-
-    } catch (err) {
-        console.log('MODAL ERROR:', err);
-
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({
-                content: '❌ Ошибка открытия формы',
-                ephemeral: true
-            });
-        }
+        return interaction.showModal(modal);
     }
-}
+
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
 
         try {
-            await interaction.deferReply({ ephemeral: true });
-
             const panelChannel = await client.channels.fetch(CHANNEL_ID);
-
             const category = panelChannel.parent;
 
             const newChannel = await interaction.guild.channels.create({
                 name: `заявка-${interaction.user.username}`,
                 type: ChannelType.GuildText,
-                parent: category ? category.id : null,
+                parent: category.id,
                 permissionOverwrites: [
                     {
                         id: interaction.guild.id,
@@ -192,29 +166,26 @@ client.on(Events.InteractionCreate, async interaction => {
                     },
                     {
                         id: interaction.user.id,
-                        allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-                    }
+                        allow: ['ViewChannel', 'SendMessages']
+                    },
+                    ...ROLES.map(id => ({
+                        id,
+                        allow: ['ViewChannel', 'SendMessages']
+                    }))
                 ]
             });
 
-            await newChannel.send({
-                content: `📥 Заявка от <@${interaction.user.id}>
-                
-🧍 Имя: ${interaction.fields.getTextInputValue('name')}
-🎂 Возраст: ${interaction.fields.getTextInputValue('age')}
-🎮 Ник: ${interaction.fields.getTextInputValue('nick')}
-🔥 Откаты: ${interaction.fields.getTextInputValue('gungame')}`
-            });
+            await newChannel.send(`📥 Заявка от <@${interaction.user.id}>`);
 
-            return interaction.editReply('✅ Заявка отправлена');
+            return interaction.reply({ content: '✅ Отправлено', ephemeral: true });
 
-        } catch (err) {
-            console.log('FORM ERROR:', err);
-            return interaction.editReply('❌ Ошибка создания заявки');
+        } catch (e) {
+            console.log(e);
+            return interaction.reply({ content: '❌ Ошибка', ephemeral: true });
         }
     }
 
-    // ================= TAKE =================
+    // ================= TAKE LOCK =================
     if (interaction.customId.startsWith('take_')) {
 
         if (takenRequests.has(interaction.channel.id))
