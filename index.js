@@ -142,9 +142,9 @@ client.on(Events.InteractionCreate, async interaction => {
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
-            )
+            ),
              new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('nick').setLabel('Откаты с гг тяжка+сайга').setStyle(TextInputStyle.Short)
+                new TextInputBuilder().setCustomId('Gungame').setLabel('Откаты с гг тяжка+сайга').setStyle(TextInputStyle.Short)
             )
         );
 
