@@ -20,13 +20,13 @@ const TOKEN = process.env.TOKEN;
 
 // ====== КАНАЛЫ ======
 const CHANNEL_ID = '1493632481763790954';
-const REPORT_CHANNEL_ID = 'ID_КАНАЛА_ОТЧЕТОВ';
-const ROLLBACK_CHANNEL_ID = 'ID_КАНАЛА_ОТКАТОВ';
+const REPORT_CHANNEL_ID = '1497290160273096744';
+const ROLLBACK_CHANNEL_ID = '1497292157499867166';
 
 // ====== РОЛИ ======
 const PORTFOLIO_ROLES = [
-    'ROLE_ID_1',
-    'ROLE_ID_2'
+    '1493715429963731075',
+    '1319640563401752586'
 ];
 
 const ROLES = [
