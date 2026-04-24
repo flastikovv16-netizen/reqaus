@@ -296,4 +296,4 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 });
 
-client.login(TOKEN);
+client.login(MTQ5MzY1MjQwODQzMjA2NjY2MA.GFDD1j.zA3RiaMgvlNjXYLTUerGCf3EV1Dd3apH0TfD8M);
