@@ -113,54 +113,55 @@ client.on(Events.InteractionCreate, async interaction => {
     // ================= ПОРТФЕЛЬ =================
     if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
-        try {
-            await interaction.deferReply({ ephemeral: true });
+    try {
+        await interaction.deferReply({ ephemeral: true });
 
-            const guild = interaction.guild;
+        const guild = interaction.guild;
 
-            const category = await guild.channels.create({
-                name: `портфель-${interaction.user.username}`,
-                type: ChannelType.Guild,
+        const category = await guild.channels.create({
+            name: `портфель-${interaction.user.username}`,
+            type: ChannelType.GuildCategory,
+        });
+
+        const channel = await guild.channels.create({
+            name: `📁-портфель`,
+            type: ChannelType.GuildText,
+            parent: category.id,
+            permissionOverwrites: [
+                { id: guild.id, deny: ['ViewChannel'] },
+                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] },
+                ...PORTFOLIO_ROLES.map(id => ({
+                    id,
+                    allow: ['ViewChannel', 'SendMessages']
+                }))
+            ]
+        });
+
+        const msg = await channel.send({
+            content: `📂 Портфель создан`
+        });
+
+        const threads = ['Capt', 'Mcl/Vzz', 'RP'];
+
+        for (const name of threads) {
+            await msg.startThread({
+                name,
+                autoArchiveDuration: 1440
             });
 
-            const channel = await guild.channels.create({
-                name: `📁-портфель`,
-                type: ChannelType.GuildText,
-                parent: category.id,
-                permissionOverwrites: [
-                    { id: guild.id, deny: ['ViewChannel'] },
-                    { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] },
-                    ...PORTFOLIO_ROLES.map(id => ({
-                        id,
-                        allow: ['ViewChannel', 'SendMessages']
-                    }))
-                ]
-            });
+            await new Promise(r => setTimeout(r, 300));
+        }
 
-            const msg = await channel.send({
-                content: `📂 Портфель создан`
-            });
+        return interaction.editReply('✅ Портфель создан');
 
-            const threads = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
+    } catch (err) {
+        console.log('PORTFOLIO ERROR:', err);
 
-            for (const name of threads) {
-                await msg.startThread({
-                    name,
-                    autoArchiveDuration: 1440
-                });
-            }
-
-            return interaction.editReply('✅ Портфель + ветки созданы');
-
-        } catch (err) {
-            console.log(err);
-
-            if (interaction.deferred || interaction.replied) {
-                return interaction.editReply('❌ Ошибка');
-            }
+        if (interaction.deferred || interaction.replied) {
+            return interaction.editReply('❌ Ошибка создания портфеля');
         }
     }
-
+}
     // ================= ОТКАТЫ =================
 if (interaction.isButton() && interaction.customId === 'create_thread') {
 
