@@ -123,47 +123,54 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ================= APPLY =================
     if (interaction.customId === 'apply') {
+    try {
+        const modal = new ModalBuilder()
+            .setCustomId('form')
+            .setTitle('Заявка');
 
-    const modal = new ModalBuilder()
-        .setCustomId('form')
-        .setTitle('Заявка');
+        const fields = [
+            new TextInputBuilder()
+                .setCustomId('name')
+                .setLabel('Имя ирл')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true),
 
-    const name = new TextInputBuilder()
-        .setCustomId('name')
-        .setLabel('Имя ирл')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
+            new TextInputBuilder()
+                .setCustomId('age')
+                .setLabel('Возраст')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true),
 
-    const age = new TextInputBuilder()
-        .setCustomId('age')
-        .setLabel('Возраст')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
+            new TextInputBuilder()
+                .setCustomId('nick')
+                .setLabel('Ник')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true),
 
-    const nick = new TextInputBuilder()
-        .setCustomId('nick')
-        .setLabel('Ник')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
+            new TextInputBuilder()
+                .setCustomId('Gungame')
+                .setLabel('Откаты с гг тяжка+сайга')
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true),
+        ];
 
-    const gungame = new TextInputBuilder()
-        .setCustomId('Gungame')
-        .setLabel('Откаты с гг тяжка+сайга')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
+        modal.addComponents(
+            ...fields.map(f => new ActionRowBuilder().addComponents(f))
+        );
 
-    modal.addComponents(
-        new ActionRowBuilder().addComponents(name),
-        new ActionRowBuilder().addComponents(age),
-        new ActionRowBuilder().addComponents(nick),
-        new ActionRowBuilder().addComponents(gungame)
-    );
+        return await interaction.showModal(modal);
 
-    return interaction.showModal(modal).catch(err => {
+    } catch (err) {
         console.log('MODAL ERROR:', err);
-    });
-}
 
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ Ошибка открытия формы',
+                ephemeral: true
+            });
+        }
+    }
+}
     // ================= FORM =================
     if (interaction.isModalSubmit() && interaction.customId === 'form') {
 
