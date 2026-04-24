@@ -120,7 +120,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
             const category = await guild.channels.create({
                 name: `портфель-${interaction.user.username}`,
-                type: ChannelType.GuildCategory,
+                type: ChannelType.Guild,
             });
 
             const channel = await guild.channels.create({
@@ -162,53 +162,35 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     // ================= ОТКАТЫ =================
-    if (interaction.isButton() && interaction.customId === 'create_thread') {
+if (interaction.isButton() && interaction.customId === 'create_thread') {
 
-        try {
-            await interaction.deferReply({ ephemeral: true });
+    try {
+        await interaction.deferReply({ ephemeral: true });
 
-            const guild = interaction.guild;
+        const channel = interaction.channel;
 
-            const category = await guild.channels.create({
-                name: `откаты-${interaction.user.username}`,
-                type: ChannelType.GuildCategory,
+        const msg = await channel.send({
+            content: `📼 Откаты от <@${interaction.user.id}>`
+        });
+
+        const threads = ['РП', 'GUNGAME', 'CAPT/MCL/VZZ'];
+
+        for (const name of threads) {
+            const thread = await msg.startThread({
+                name: `откаты-${interaction.user.username}-${name}`,
+                autoArchiveDuration: 1440
             });
 
-            const channel = await guild.channels.create({
-                name: `📼-откаты`,
-                type: ChannelType.GuildText,
-                parent: category.id,
-                permissionOverwrites: [
-                    { id: guild.id, deny: ['ViewChannel'] },
-                    { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] },
-                    ...PORTFOLIO_ROLES.map(id => ({
-                        id,
-                        allow: ['ViewChannel', 'SendMessages']
-                    }))
-                ]
-            });
-
-            const msg = await channel.send({
-                content: `📼 Откаты`
-            });
-
-            const threads = ['РП', 'GUNGAME', 'CAPT/MCL/VZZ'];
-
-            for (const name of threads) {
-                await msg.startThread({
-                    name,
-                    autoArchiveDuration: 1440
-                });
-            }
-
-            return interaction.editReply('✅ Ветка создана');
-
-        } catch (err) {
-            console.log(err);
-            return interaction.editReply('❌ Ошибка');
+            await new Promise(r => setTimeout(r, 300));
         }
-    }
 
+        return interaction.editReply('✅ Успешно');
+
+    } catch (err) {
+        console.log(err);
+        return interaction.editReply('❌ Ошибка');
+    }
+}
     // ================= APPLY =================
     if (interaction.isButton() && interaction.customId === 'apply') {
 
