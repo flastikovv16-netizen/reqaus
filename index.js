@@ -44,8 +44,26 @@ client.once('ready', async () => {
     const embed = new EmbedBuilder()
         .setColor('#2b2d31')
         .setImage('https://i.imgur.com/JkO2Vvi.png')
-        .setDescription(`👋 Путь в семью Kamatoz начинается здесь!`);
+        .setDescription(`
+👋 Путь в семью Kamatoz начинается здесь!
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📌 Важно  
+Прочитайте ВСЕ ВОПРОСЫ.  
+Если не ответили — ЗАЯВКА ОТКЛОНЯЕТСЯ.  
+ЗАЯВКИ только на сервер Orlando (18)
+
+Требования:  
+Возраст - 15+  
+Прайм тайм - 4+ (исключения)  
+Базовая стрельба с тяжки + сайга  
+Адекватность  
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📥 Нажми кнопку ниже
+`)
     const button = new ButtonBuilder()
         .setCustomId('apply')
         .setLabel('Подать заявку')
@@ -188,24 +206,28 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     // ---------- ACCEPT ----------
-    if (interaction.customId.startsWith('accept_')) {
+  if (interaction.customId.startsWith('accept_')) {
 
-        const member = await interaction.guild.members.fetch(userId);
-        await member.roles.add(ROLE_ACCEPT);
+    const member = await interaction.guild.members.fetch(userId);
+    await member.roles.add(ROLE_ACCEPT);
 
-        stats[interaction.user.id] = (stats[interaction.user.id] || 0) + 1;
+    // ====== СЧЁТЧИК ======
+    stats[interaction.user.id] = (stats[interaction.user.id] || 0) + 1;
 
-        const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+    const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
 
-        await logChannel.send(`✅ <@${interaction.user.id}> принял <@${userId}>`);
+    await logChannel.send(
+        `✅ <@${interaction.user.id}> принял <@${userId}> | Всего: ${stats[interaction.user.id]}`
+    );
 
-        await interaction.reply('✅ Принят');
+    await interaction.reply('✅ Принят');
 
-        setTimeout(() => {
-            interaction.channel.delete().catch(() => {});
-        }, 10000);
+    setTimeout(() => {
+        interaction.channel.delete().catch(() => {});
+    }, 10000);
 
-        return;
+    return;
+}
     }
 
     // ---------- DENY ----------
