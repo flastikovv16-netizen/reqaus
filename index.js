@@ -121,7 +121,7 @@ client.once('ready', async () => {
 client.on(Events.InteractionCreate, async interaction => {
 
     // ====== ПОРТФЕЛЬ ======
-   if (interaction.isButton() && interaction.customId === 'create_portfolio') async {
+  if (interaction.isButton() && interaction.customId === 'create_portfolio') {
 
     try {
         const guild = interaction.guild;
@@ -170,35 +170,6 @@ client.on(Events.InteractionCreate, async interaction => {
         });
     }
 }
-        });
-
-        await portfolio.permissionOverwrites.set([
-            {
-                id: interaction.guild.id,
-                deny: ['ViewChannel'],
-            },
-            {
-                id: interaction.user.id,
-                allow: ['ViewChannel']
-            },
-            ...PORTFOLIO_ROLES.map(id => ({
-                id,
-                allow: ['ViewChannel']
-            }))
-        ]);
-
-        const channels = ['Capt', 'Mcl/Vzz', 'RP', 'gungame'];
-
-        for (let name of channels) {
-            await interaction.guild.channels.create({
-                name,
-                type: ChannelType.GuildText,
-                parent: portfolio.id
-            });
-        }
-
-        return interaction.reply({ content: '✅ Портфель создан', ephemeral: true });
-    }
 
     // ====== ОТКАТЫ ======
     if (interaction.isButton() && interaction.customId === 'create_thread') {
