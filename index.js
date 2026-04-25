@@ -189,10 +189,14 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     // ===== CALL =====
-    if (interaction.customId.startsWith('call_')) {
-        await interaction.channel.send(`📞 <@${userId}> зайди в войс`);
-        return interaction.reply({ content: '📞 Отправлено', ephemeral: true });
-    }
+   if (interaction.customId.startsWith('call_')) {
+
+    await interaction.channel.send(
+        `📞 <@${userId}> Вы были вызваны на обзвон, пожалуйста зайдите в любой свободный войс, или напишите время когда вы будете свободны`
+    );
+
+    return interaction.reply({ content: '📞 Вызов отправлен', ephemeral: true });
+}
 
     // ===== ACCEPT =====
     if (interaction.customId.startsWith('accept_')) {
