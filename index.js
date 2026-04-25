@@ -37,6 +37,7 @@ const LOG_CHANNEL_ID = '1493716294531416085';
 const stats = {};
 const takenRequests = new Set();
 
+// ❗ фикс дублей
 let panelsSent = false;
 
 
@@ -254,7 +255,7 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.editReply('✅ Откаты созданы');
     }
 
-    // ===== ПОРТФЕЛЬ =====
+    // ===== ПОРТФЕЛЬ (FIX 3 ВЕТКИ) =====
     if (interaction.customId === 'create_portfolio') {
 
         await interaction.deferReply({ ephemeral: true });
@@ -271,9 +272,11 @@ client.on(Events.InteractionCreate, async interaction => {
 
         const msg = await channel.send(`📂 Портфель <@${interaction.user.id}>`);
 
-        const threads = ['РП', 'КАПТЫ', 'MCL/VZZ'];
+        // 🔥 фикс: задержка чтобы не создавалась 1 ветка
+        const threads = ['РП', 'КАПТЫ', 'МЦЛ'];
 
         for (const name of threads) {
+            await new Promise(r => setTimeout(r, 500));
             await msg.startThread({
                 name,
                 autoArchiveDuration: 1440
