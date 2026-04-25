@@ -21,6 +21,7 @@ const TOKEN = process.env.TOKEN;
 // ====== КАНАЛЫ ======
 const CHANNEL_ID = '1493632481763790954';
 const ROLLBACK_CHANNEL_ID = '1497292157499867166';
+const REPORT_CHANNEL_ID = '1497290160273096744';
 
 // ====== РОЛИ ======
 const ROLES = [
@@ -36,11 +37,17 @@ const LOG_CHANNEL_ID = '1493716294531416085';
 const stats = {};
 const takenRequests = new Set();
 
+let panelsSent = false;
+
 
 // ================= READY =================
 client.once('ready', async () => {
     console.log('Бот запущен');
 
+    if (panelsSent) return;
+    panelsSent = true;
+
+    // ===== ЗАЯВКИ =====
     const channel = await client.channels.fetch(CHANNEL_ID);
 
     const embed = new EmbedBuilder()
@@ -77,7 +84,7 @@ client.once('ready', async () => {
         components: [new ActionRowBuilder().addComponents(button)]
     });
 
-    // ====== КНОПКА ОТКАТОВ ======
+    // ===== ОТКАТЫ =====
     const rollbackChannel = await client.channels.fetch(ROLLBACK_CHANNEL_ID);
 
     const rollbackBtn = new ButtonBuilder()
@@ -88,6 +95,19 @@ client.once('ready', async () => {
     await rollbackChannel.send({
         content: '📼 Создать откаты',
         components: [new ActionRowBuilder().addComponents(rollbackBtn)]
+    });
+
+    // ===== ОТЧЕТЫ =====
+    const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
+
+    const reportBtn = new ButtonBuilder()
+        .setCustomId('create_portfolio')
+        .setLabel('Создать портфель')
+        .setStyle(ButtonStyle.Success);
+
+    await reportChannel.send({
+        content: '📂 Создать портфель',
+        components: [new ActionRowBuilder().addComponents(reportBtn)]
     });
 });
 
@@ -116,7 +136,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 new TextInputBuilder().setCustomId('history').setLabel('История семей').setStyle(TextInputStyle.Paragraph)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('video').setLabel('Откаты с гг тяжка + сайга').setStyle(TextInputStyle.Paragraph)
+                new TextInputBuilder().setCustomId('video').setLabel('Откаты').setStyle(TextInputStyle.Paragraph)
             )
         );
 
@@ -175,28 +195,13 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const userId = interaction.customId.split('_')[1];
 
-    // ===== TAKE =====
-    if (interaction.customId.startsWith('take_')) {
-
-        if (takenRequests.has(interaction.channel.id))
-            return interaction.reply({ content: '❌ Уже взята', ephemeral: true });
-
-        takenRequests.add(interaction.channel.id);
-
-        await interaction.channel.send(`🧾 <@${interaction.user.id}> взял заявку`);
-
-        return interaction.reply({ content: '✅ Ты взял заявку', ephemeral: true });
-    }
-
     // ===== CALL =====
-   if (interaction.customId.startsWith('call_')) {
-
-    await interaction.channel.send(
-        `📞 <@${userId}> Вы были вызваны на обзвон, пожалуйста зайдите в любой свободный войс, или напишите время когда вы будете свободны`
-    );
-
-    return interaction.reply({ content: '📞 Вызов отправлен', ephemeral: true });
-}
+    if (interaction.customId.startsWith('call_')) {
+        await interaction.channel.send(
+            `📞 <@${userId}> Вы были вызваны на обзвон, пожалуйста зайдите в любой свободный войс или напишите время`
+        );
+        return interaction.reply({ content: '📞 Вызов отправлен', ephemeral: true });
+    }
 
     // ===== ACCEPT =====
     if (interaction.customId.startsWith('accept_')) {
@@ -240,11 +245,7 @@ client.on(Events.InteractionCreate, async interaction => {
             parent: interaction.channel.parent?.id,
             permissionOverwrites: [
                 { id: interaction.guild.id, deny: ['ViewChannel'] },
-                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] },
-                ...ROLES.map(id => ({
-                    id,
-                    allow: ['ViewChannel']
-                }))
+                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] }
             ]
         });
 
@@ -252,18 +253,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
         return interaction.editReply('✅ Откаты созданы');
     }
-    // ====== ОТЧЕТЫ ======
-const reportChannel = await client.channels.fetch('ID_КАНАЛА_ОТЧЕТОВ');
-
-const reportBtn = new ButtonBuilder()
-    .setCustomId('create_portfolio')
-    .setLabel('Создать портфель')
-    .setStyle(ButtonStyle.Success);
-
-await reportChannel.send({
-    content: '📂 Создать портфель',
-    components: [new ActionRowBuilder().addComponents(reportBtn)]
-});
 
     // ===== ПОРТФЕЛЬ =====
     if (interaction.customId === 'create_portfolio') {
