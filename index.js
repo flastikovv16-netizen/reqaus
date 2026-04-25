@@ -18,12 +18,12 @@ const client = new Client({
 
 const TOKEN = process.env.TOKEN;
 
-// ====== КАНАЛЫ ======
+// ===== КАНАЛЫ =====
 const CHANNEL_ID = '1493632481763790954';
 const ROLLBACK_CHANNEL_ID = '1497292157499867166';
 const REPORT_CHANNEL_ID = '1497290160273096744';
 
-// ====== РОЛИ ======
+// ===== РОЛИ =====
 const ROLES = [
     '1493715429963731075',
     '1245159189777485885',
@@ -37,16 +37,17 @@ const LOG_CHANNEL_ID = '1493716294531416085';
 const stats = {};
 const takenRequests = new Set();
 
-// ❗ фикс дублей
-let panelsSent = false;
 
-
-// ================= READY =================
+// ===== READY =====
 client.once('ready', async () => {
     console.log('Бот запущен');
 
-    if (panelsSent) return;
-    panelsSent = true;
+    // ===== ФУНКЦИЯ: проверка есть ли уже панель =====
+    async function sendIfNotExists(channel, textCheck, payload) {
+        const messages = await channel.messages.fetch({ limit: 10 });
+        const exists = messages.some(m => m.content?.includes(textCheck));
+        if (!exists) await channel.send(payload);
+    }
 
     // ===== ЗАЯВКИ =====
     const channel = await client.channels.fetch(CHANNEL_ID);
@@ -54,33 +55,14 @@ client.once('ready', async () => {
     const embed = new EmbedBuilder()
         .setColor('#2b2d31')
         .setImage('https://i.imgur.com/JkO2Vvi.png')
-        .setDescription(`
-👋 Путь в семью Kamatoz начинается здесь!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📌 Важно  
-Прочитайте ВСЕ ВОПРОСЫ.  
-Если не ответили — ЗАЯВКА ОТКЛОНЯЕТСЯ.  
-ЗАЯВКИ только на сервер Orlando (18)
-
-Требования:  
-Возраст - 15+  
-Прайм тайм - 4+ (исключения)  
-Базовая стрельба с тяжки + сайга  
-Адекватность  
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📥 Нажми кнопку ниже
-`);
+        .setDescription(`👋 Путь в семью Kamatoz начинается здесь!`);
 
     const button = new ButtonBuilder()
         .setCustomId('apply')
         .setLabel('Подать заявку')
         .setStyle(ButtonStyle.Primary);
 
-    await channel.send({
+    await sendIfNotExists(channel, 'Путь в семью', {
         embeds: [embed],
         components: [new ActionRowBuilder().addComponents(button)]
     });
@@ -93,7 +75,7 @@ client.once('ready', async () => {
         .setLabel('Создать откаты')
         .setStyle(ButtonStyle.Primary);
 
-    await rollbackChannel.send({
+    await sendIfNotExists(rollbackChannel, 'Создать откаты', {
         content: '📼 Создать откаты',
         components: [new ActionRowBuilder().addComponents(rollbackBtn)]
     });
@@ -106,14 +88,14 @@ client.once('ready', async () => {
         .setLabel('Создать портфель')
         .setStyle(ButtonStyle.Success);
 
-    await reportChannel.send({
+    await sendIfNotExists(reportChannel, 'Создать портфель', {
         content: '📂 Создать портфель',
         components: [new ActionRowBuilder().addComponents(reportBtn)]
     });
 });
 
 
-// ================= INTERACTIONS =================
+// ===== INTERACTIONS =====
 client.on(Events.InteractionCreate, async interaction => {
 
     // ===== APPLY =====
@@ -125,16 +107,16 @@ client.on(Events.InteractionCreate, async interaction => {
 
         modal.addComponents(
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('name').setLabel('Имя ирл').setStyle(TextInputStyle.Short)
+                new TextInputBuilder().setCustomId('name').setLabel('Имя').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('age').setLabel('Возраст').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('nick').setLabel('Ник игровой').setStyle(TextInputStyle.Short)
+                new TextInputBuilder().setCustomId('nick').setLabel('Ник').setStyle(TextInputStyle.Short)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('history').setLabel('История семей').setStyle(TextInputStyle.Paragraph)
+                new TextInputBuilder().setCustomId('history').setLabel('История').setStyle(TextInputStyle.Paragraph)
             ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder().setCustomId('video').setLabel('Откаты').setStyle(TextInputStyle.Paragraph)
@@ -198,10 +180,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     // ===== CALL =====
     if (interaction.customId.startsWith('call_')) {
-        await interaction.channel.send(
-            `📞 <@${userId}> Вы были вызваны на обзвон, пожалуйста зайдите в любой свободный войс или напишите время`
-        );
-        return interaction.reply({ content: '📞 Вызов отправлен', ephemeral: true });
+        await interaction.channel.send(`📞 <@${userId}> Вы были вызваны на обзвон`);
+        return interaction.reply({ content: 'OK', ephemeral: true });
     }
 
     // ===== ACCEPT =====
@@ -215,22 +195,10 @@ client.on(Events.InteractionCreate, async interaction => {
         const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
 
         await logChannel.send(
-            `✅ <@${interaction.user.id}> принял <@${userId}> | Всего: ${stats[interaction.user.id]}`
+            `✅ <@${interaction.user.id}> принял <@${userId}> | ${stats[interaction.user.id]}`
         );
 
-        await interaction.reply('✅ Принят');
-
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 10000);
-    }
-
-    // ===== DENY =====
-    if (interaction.customId.startsWith('deny_')) {
-
-        const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
-
-        await logChannel.send(`❌ <@${interaction.user.id}> отклонил <@${userId}>`);
-
-        await interaction.reply('❌ Отклонён');
+        await interaction.reply('OK');
 
         setTimeout(() => interaction.channel.delete().catch(() => {}), 10000);
     }
@@ -244,18 +212,12 @@ client.on(Events.InteractionCreate, async interaction => {
             name: `откаты-${interaction.user.username}`,
             type: ChannelType.GuildText,
             parent: interaction.channel.parent?.id,
-            permissionOverwrites: [
-                { id: interaction.guild.id, deny: ['ViewChannel'] },
-                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] }
-            ]
         });
 
-        await channel.send(`📼 Откаты <@${interaction.user.id}>`);
-
-        return interaction.editReply('✅ Откаты созданы');
+        return interaction.editReply('OK');
     }
 
-    // ===== ПОРТФЕЛЬ (FIX 3 ВЕТКИ) =====
+    // ===== ПОРТФЕЛЬ (FIX) =====
     if (interaction.customId === 'create_portfolio') {
 
         await interaction.deferReply({ ephemeral: true });
@@ -264,26 +226,29 @@ client.on(Events.InteractionCreate, async interaction => {
             name: `портфель-${interaction.user.username}`,
             type: ChannelType.GuildText,
             parent: interaction.channel.parent?.id,
-            permissionOverwrites: [
-                { id: interaction.guild.id, deny: ['ViewChannel'] },
-                { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] }
-            ]
         });
 
-        const msg = await channel.send(`📂 Портфель <@${interaction.user.id}>`);
+        const msg = await channel.send(`📂 Портфель`);
 
-        // 🔥 фикс: задержка чтобы не создавалась 1 ветка
-        const threads = ['РП', 'КАПТЫ', 'МЦЛ'];
+        // 🔥 ГАРАНТИРОВАННЫЙ ФИКС
+        const create = (name, delay) =>
+            new Promise(resolve =>
+                setTimeout(async () => {
+                    await msg.startThread({
+                        name,
+                        autoArchiveDuration: 1440
+                    }).catch(() => {});
+                    resolve();
+                }, delay)
+            );
 
-        for (const name of threads) {
-            await new Promise(r => setTimeout(r, 500));
-            await msg.startThread({
-                name,
-                autoArchiveDuration: 1440
-            });
-        }
+        await Promise.all([
+            create('РП', 0),
+            create('КАПТЫ', 800),
+            create('МЦЛ', 1600)
+        ]);
 
-        return interaction.editReply('✅ Портфель создан');
+        return interaction.editReply('✅');
     }
 });
 
