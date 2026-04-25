@@ -218,38 +218,42 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     // ===== ПОРТФЕЛЬ (FIX) =====
-    if (interaction.customId === 'create_portfolio') {
+  if (interaction.customId === 'create_portfolio') {
 
-        await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ ephemeral: true });
 
-        const channel = await interaction.guild.channels.create({
-            name: `портфель-${interaction.user.username}`,
-            type: ChannelType.GuildText,
-            parent: interaction.channel.parent?.id,
-        });
+    const channel = await interaction.guild.channels.create({
+        name: `портфель-${interaction.user.username}`,
+        type: ChannelType.GuildText,
+        parent: interaction.channel.parent?.id,
+        permissionOverwrites: [
+            { id: interaction.guild.id, deny: ['ViewChannel'] },
+            { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages'] }
+        ]
+    });
 
-        const msg = await channel.send(`📂 Портфель`);
+    // 🔥 одно сообщение
+    const msg = await channel.send(`📂 Портфель <@${interaction.user.id}>`);
 
-        // 🔥 ГАРАНТИРОВАННЫЙ ФИКС
-        const create = (name, delay) =>
-            new Promise(resolve =>
-                setTimeout(async () => {
-                    await msg.startThread({
-                        name,
-                        autoArchiveDuration: 1440
-                    }).catch(() => {});
-                    resolve();
-                }, delay)
-            );
+    // 🔥 ВАЖНО: строго по очереди + задержка
+    await new Promise(r => setTimeout(r, 500));
+    await msg.startThread({
+        name: 'РП',
+        autoArchiveDuration: 1440
+    });
 
-        await Promise.all([
-            create('РП', 0),
-            create('КАПТЫ', 800),
-            create('МЦЛ', 1600)
-        ]);
+    await new Promise(r => setTimeout(r, 800));
+    await msg.startThread({
+        name: 'КАПТЫ',
+        autoArchiveDuration: 1440
+    });
 
-        return interaction.editReply('✅');
-    }
-});
+    await new Promise(r => setTimeout(r, 1100));
+    await msg.startThread({
+        name: 'МЦЛ',
+        autoArchiveDuration: 1440
+    });
 
+    return interaction.editReply('✅ Портфель создан');
+}
 client.login(TOKEN);
