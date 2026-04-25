@@ -116,7 +116,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 new TextInputBuilder().setCustomId('history').setLabel('История семей').setStyle(TextInputStyle.Paragraph)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('video').setLabel('Откаты').setStyle(TextInputStyle.Paragraph)
+                new TextInputBuilder().setCustomId('video').setLabel('Откаты с гг тяжка + сайга').setStyle(TextInputStyle.Paragraph)
             )
         );
 
@@ -252,6 +252,18 @@ client.on(Events.InteractionCreate, async interaction => {
 
         return interaction.editReply('✅ Откаты созданы');
     }
+    // ====== ОТЧЕТЫ ======
+const reportChannel = await client.channels.fetch('ID_КАНАЛА_ОТЧЕТОВ');
+
+const reportBtn = new ButtonBuilder()
+    .setCustomId('create_portfolio')
+    .setLabel('Создать портфель')
+    .setStyle(ButtonStyle.Success);
+
+await reportChannel.send({
+    content: '📂 Создать портфель',
+    components: [new ActionRowBuilder().addComponents(reportBtn)]
+});
 
     // ===== ПОРТФЕЛЬ =====
     if (interaction.customId === 'create_portfolio') {
